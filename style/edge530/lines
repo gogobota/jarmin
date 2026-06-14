@@ -1,3 +1,8 @@
+# Contour lines (elevation data)
+contour=elevation & (ele~'.*00' | contour_ext=elevation_major) [0x22 resolution 20]
+contour=elevation & (ele~'.*50' | contour_ext=elevation_medium) [0x21 resolution 21]
+contour=elevation [0x20 resolution 22]
+
 # Avoid routing cyclists on major highways if possible
 highway=motorway {add bicycle=no}
 highway=trunk {add bicycle=no}

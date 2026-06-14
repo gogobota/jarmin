@@ -71,6 +71,27 @@ def extract_region(input_pbf, output_pbf, bbox=None, polygon_file=None):
         raise ValueError("Either bbox or polygon_file must be provided for extraction.")
     run_cmd(cmd)
 
+def merge_contours(map_pbf, contours_pbf, output_pbf):
+    print(f"Merging contours from {contours_pbf} into map...")
+    # osmconvert can only convert one PBF to o5m at a time during merge, or requires converting to o5m first.
+    # The safest one-liner for osmconvert merging is to use o5m conversion in memory, but dropping version info.
+    # Wait, the correct osmconvert syntax for merging two PBFs is usually converting them to o5m first.
+    # However, if we drop version we can append them. Let's convert to o5m first.
+    map_o5m = str(map_pbf).replace(".pbf", ".o5m")
+    contours_o5m = str(contours_pbf).replace(".pbf", ".o5m")
+    
+    print("  Converting map to o5m...")
+    run_cmd([str(OSMCONVERT_BIN), str(map_pbf), f"-o={map_o5m}"])
+    
+    print("  Converting contours to o5m...")
+    run_cmd([str(OSMCONVERT_BIN), str(contours_pbf), f"-o={contours_o5m}"])
+    
+    print("  Merging o5m files...")
+    run_cmd([str(OSMCONVERT_BIN), map_o5m, contours_o5m, f"-o={output_pbf}"])
+    
+    Path(map_o5m).unlink(missing_ok=True)
+    Path(contours_o5m).unlink(missing_ok=True)
+
 def split_data(input_pbf, output_dir):
     output_dir.mkdir(parents=True, exist_ok=True)
     cmd = [
@@ -80,7 +101,7 @@ def split_data(input_pbf, output_dir):
     ]
     run_cmd(cmd)
 
-def compile_map(split_dir, output_file):
+def compile_map(split_dir, output_file, dem_dir=None):
     out_dir = output_file.parent
     out_dir.mkdir(parents=True, exist_ok=True)
     template_args = split_dir / "template.args"
@@ -98,6 +119,14 @@ def compile_map(split_dir, output_file):
         "-c", str(template_args),
         str(typ_file)
     ]
+    
+    if dem_dir:
+        cmd.extend([
+            f"--dem={dem_dir}",
+            "--dem-dists=3314,13248,44176",
+            "--overview-dem-dist=88368"
+        ])
+
     run_cmd(cmd)
     
     # mkgmap usually outputs gmapsupp.img inside the out_dir.
@@ -105,12 +134,7 @@ def compile_map(split_dir, output_file):
     if produced_img.resolve() != output_file.resolve() and produced_img.exists():
         produced_img.rename(output_file)
 
-def merge_elevation(map_pbf, elevation_pbf, output_pbf):
-    # Placeholder for Phase 2: Inject contour data using osmconvert
-    # e.g., run_cmd([str(OSMCONVERT_BIN), str(map_pbf), str(elevation_pbf), "-o=" + str(output_pbf)])
-    pass
-
-def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, bbox=None, countries=None, polygon=None):
+def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, bbox=None, countries=None, polygon=None, contours=None, dem_dir=None):
     if not (bbox or countries or polygon):
         print("Error: You must provide one of --bbox, --countries, or --polygon to extract data.")
         sys.exit(1)
@@ -146,11 +170,17 @@ def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, 
     print("1. Extracting region...")
     extract_region(input_for_extraction, region_path, bbox=bbox, polygon_file=mask_file)
 
+    if contours:
+        print("1b. Merging contour lines...")
+        region_with_contours_path = work_dir / "region_with_contours.osm.pbf"
+        merge_contours(region_path, Path(contours), region_with_contours_path)
+        region_path = region_with_contours_path
+
     print("2. Splitting data...")
     split_data(region_path, split_dir)
 
     print("3. Compiling Garmin map...")
-    compile_map(split_dir, output_file)
+    compile_map(split_dir, output_file, dem_dir=dem_dir)
 
     print(f"Pipeline finished! Map is available at: {output_file}")
 
@@ -161,6 +191,10 @@ def main():
     parser.add_argument("--work-dir", default="work", help="Temporary working directory")
     parser.add_argument("--output", default="gmapsupp.img", help="Final Garmin map output path")
     parser.add_argument("--skip-download", action="store_true", help="Skip planet download and use local --planet-file")
+
+    # Elevation / Contours
+    parser.add_argument("--contours", help="Path to a pre-processed contour lines .osm.pbf file to merge")
+    parser.add_argument("--dem", help="Path to a directory containing SRTM .hgt files for hillshading and elevation profiles")
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--bbox", help="Bounding box (min_lon,min_lat,max_lon,max_lat)")
@@ -183,7 +217,9 @@ def main():
         skip_download=args.skip_download,
         bbox=args.bbox,
         countries=args.countries,
-        polygon=args.polygon
+        polygon=args.polygon,
+        contours=args.contours,
+        dem_dir=args.dem
     )
 
 if __name__ == "__main__":

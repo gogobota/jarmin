@@ -87,5 +87,28 @@ class TestJarminPipeline(unittest.TestCase):
         self.assertTrue(output_img.exists(), "Output map file was not generated for polygon")
         self.assertGreater(output_img.stat().st_size, 0, "Output map file is empty for polygon")
 
+    def test_full_pipeline_with_contours(self):
+        script_path = Path(__file__).parent / "pipeline.py"
+        output_img = Path(self.work_dir) / "output_contours.img"
+        contours_pbf = Path(self.work_dir) / "dummy_contours.osm.pbf"
+        
+        # We can just use the test_pbf as dummy contours since osmconvert doesn't care if the tags actually say "contour"
+        shutil.copy(self.test_pbf, contours_pbf)
+
+        cmd = [
+            "python3", str(script_path),
+            "--bbox", "5.9,49.7,6.1,49.9",
+            "--planet-file", str(self.test_pbf),
+            "--contours", str(contours_pbf),
+            "--work-dir", os.path.join(self.work_dir, "work_contours"),
+            "--output", str(output_img),
+            "--skip-download"
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, f"Pipeline with contours failed: {result.stderr}")
+        self.assertTrue(output_img.exists(), "Output map file was not generated for contours test")
+        self.assertGreater(output_img.stat().st_size, 0, "Output map file is empty for contours test")
+
 if __name__ == "__main__":
     unittest.main()
