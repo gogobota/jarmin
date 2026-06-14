@@ -120,6 +120,7 @@ class TestJarminPipeline(unittest.TestCase):
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
         self.assertIn("--generate-elevation", result.stdout)
+        self.assertIn("--update", result.stdout)
 
 if __name__ == "__main__":
     unittest.main()

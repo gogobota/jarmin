@@ -12,6 +12,7 @@ To process the map generation pipeline locally, the following programs must be i
 *   **[osmium-tool](https://osmcode.org/osmium-tool/)** (osmium): A highly efficient C++ tool ideal for extracting specific regional bounding boxes from the official full planet `.osm.pbf` file.
 *   **[wget](https://www.gnu.org/software/wget/) / [curl](https://curl.se/)**: Used in the automation scripts to download the planet file, elevation data, and tool binaries.
 *   **[make](https://www.gnu.org/software/make/)**: Recommended for running the automation pipeline (`Makefile`).
+*   **[osmupdate](https://wiki.openstreetmap.org/wiki/Osmupdate)**: A C-based command-line utility used to download and apply minutely diffs from OSM servers directly to local map extracts.
 
 ## Phase 1: Toolchain & Environment Setup
 We will write a bootstrap script (or a `Makefile`/`Dockerfile`) to automatically fetch and configure the required binaries:
@@ -22,10 +23,11 @@ We will write a bootstrap script (or a `Makefile`/`Dockerfile`) to automatically
 ## Phase 2: The Automation Pipeline
 We will build an automated pipeline with configurable parameters (e.g., Region="Germany" or "Europe"). The pipeline will run the following sequence:
 1.  **Fetch Data**: Download official map data directly from OpenStreetMap infrastructure (e.g., `planet.openstreetmap.org`). To target specific regions, we will extract the area locally from the official planet file using a bounding box or by fetching official country borders via the OpenStreetMap Nominatim API (creating a GeoJSON mask) to feed into a tool like `osmium` or `osmconvert`. This avoids reliance on third-party extract providers like Geofabrik.
-2.  **Fetch Elevation**: Download matching SRTM (elevation) `.hgt` files and pre-processed contour data.
-3.  **Merge**: Use `osmconvert` to inject the contour data into the primary map data.
-4.  **Split**: Run `splitter` with parameters optimized for the Garmin Edge's memory limits.
-5.  **Compile**: Run `mkgmap` with routing enabled and point it to our custom `.TYP` files and styling rules to generate the final `gmapsupp.img` file.
+2.  **Incremental Updates**: Use `osmupdate` directly on the tiny region extract to fetch daily/hourly/minutely diffs from the official OSM servers. This enables us to keep an outdated 75GB planet file on disk, but output Garmin maps that are accurate to the exact minute without redownloading the planet.
+3.  **Fetch Elevation**: Download matching SRTM (elevation) `.hgt` files and pre-processed contour data.
+4.  **Merge**: Use `osmconvert` to inject the contour data into the primary map data.
+5.  **Split**: Run `splitter` with parameters optimized for the Garmin Edge's memory limits.
+6.  **Compile**: Run `mkgmap` with routing enabled and point it to our custom `.TYP` files and styling rules to generate the final `gmapsupp.img` file.
 
 ## Phase 3: Garmin Edge 530 Specific Tuning
 The Edge 530 has a non-touch screen and a specific resolution/color palette. Cluttered maps are very hard to read while riding. We will create a custom map style within `jarmin` focusing on:

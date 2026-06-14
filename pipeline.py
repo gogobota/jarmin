@@ -14,6 +14,7 @@ DOWNLOADS_DIR = BASE_DIR / "downloads"
 SPLITTER_JAR = DOWNLOADS_DIR / "splitter-r654" / "splitter.jar"
 MKGMAP_JAR = DOWNLOADS_DIR / "mkgmap-r4924" / "mkgmap.jar"
 OSMCONVERT_BIN = DOWNLOADS_DIR / "osmconvert"
+OSMUPDATE_BIN = DOWNLOADS_DIR / "osmupdate"
 
 def run_cmd(cmd):
     print(f"--> {' '.join(str(c) for c in cmd)}")
@@ -69,6 +70,14 @@ def extract_region(input_pbf, output_pbf, bbox=None, polygon_file=None):
         cmd = ["osmium", "extract", "-b", bbox, str(input_pbf), "-o", str(output_pbf), "--overwrite"]
     else:
         raise ValueError("Either bbox or polygon_file must be provided for extraction.")
+    run_cmd(cmd)
+
+def update_region(input_pbf, output_pbf, work_dir):
+    print(f"Updating {input_pbf} with osmupdate...")
+    # osmupdate might need a temp directory for downloaded diffs
+    temp_dir = work_dir / "osmupdate_temp"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    cmd = [str(OSMUPDATE_BIN), str(input_pbf), str(output_pbf), f"-t={temp_dir}/"]
     run_cmd(cmd)
 
 def merge_contours(map_pbf, contours_pbf, output_pbf):
@@ -182,7 +191,7 @@ def compile_map(split_dir, output_file, dem_dir=None):
     if produced_img.resolve() != output_file.resolve() and produced_img.exists():
         produced_img.rename(output_file)
 
-def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, bbox=None, countries=None, polygon=None, contours=None, generate_elevation=False, dem_dir=None):
+def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, update=False, bbox=None, countries=None, polygon=None, contours=None, generate_elevation=False, dem_dir=None):
     if not (bbox or countries or polygon):
         print("Error: You must provide one of --bbox, --countries, or --polygon to extract data.")
         sys.exit(1)
@@ -218,9 +227,15 @@ def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, 
     print("1. Extracting region...")
     extract_region(input_for_extraction, region_path, bbox=bbox, polygon_file=mask_file)
 
+    if update:
+        print("1a. Updating extracted region via osmupdate...")
+        updated_region_path = work_dir / "region_updated.osm.pbf"
+        update_region(region_path, updated_region_path, work_dir)
+        region_path = updated_region_path
+
     active_contours = None
     if generate_elevation:
-        print("1a. Generating contour lines dynamically via pyhgtmap...")
+        print("1b. Generating contour lines dynamically via pyhgtmap...")
         generated_contours_path = work_dir / "auto_contours.osm.pbf"
         generate_contours(work_dir, generated_contours_path, bbox=bbox, polygon_file=mask_file)
         active_contours = generated_contours_path
@@ -228,7 +243,7 @@ def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, 
         active_contours = Path(contours)
 
     if active_contours:
-        print("1b. Merging contour lines...")
+        print("1c. Merging contour lines...")
         region_with_contours_path = work_dir / "region_with_contours.osm.pbf"
         merge_contours(region_path, active_contours, region_with_contours_path)
         region_path = region_with_contours_path
@@ -248,6 +263,7 @@ def main():
     parser.add_argument("--work-dir", default="work", help="Temporary working directory")
     parser.add_argument("--output", default="gmapsupp.img", help="Final Garmin map output path")
     parser.add_argument("--skip-download", action="store_true", help="Skip planet download and use local --planet-file")
+    parser.add_argument("--update", action="store_true", help="Use osmupdate to fetch incremental diffs and update the extracted region to the current minute")
 
     # Elevation / Contours
     parser.add_argument("--contours", help="Path to a pre-processed contour lines .osm.pbf file to merge")
@@ -262,7 +278,7 @@ def main():
     args = parser.parse_args()
 
     # Verify dependencies are in place
-    for tool in [SPLITTER_JAR, MKGMAP_JAR, OSMCONVERT_BIN]:
+    for tool in [SPLITTER_JAR, MKGMAP_JAR, OSMCONVERT_BIN, OSMUPDATE_BIN]:
         if not tool.exists():
             print(f"Error: Missing tool {tool}. Did you run downloads/download.sh?")
             sys.exit(1)
@@ -273,6 +289,7 @@ def main():
         work_dir=args.work_dir,
         output_file=args.output,
         skip_download=args.skip_download,
+        update=args.update,
         bbox=args.bbox,
         countries=args.countries,
         polygon=args.polygon,
