@@ -32,31 +32,60 @@ class TestJarminPipeline(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.work_dir)
 
-    def test_full_pipeline(self):
+    def test_full_pipeline_bbox(self):
         script_path = Path(__file__).parent / "pipeline.py"
-        output_img = Path(self.work_dir) / "output.img"
+        output_img = Path(self.work_dir) / "output_bbox.img"
         
-        # We run the pipeline script, feeding it the tiny PBF instead of downloading the massive planet file.
-        # Bbox encompasses the test nodes (min_lon,min_lat,max_lon,max_lat)
         cmd = [
             "python3", str(script_path),
             "--bbox", "5.9,49.7,6.1,49.9",
             "--planet-file", str(self.test_pbf),
-            "--work-dir", os.path.join(self.work_dir, "work"),
+            "--work-dir", os.path.join(self.work_dir, "work_bbox"),
             "--output", str(output_img),
             "--skip-download"
         ]
         
-        # Execute the pipeline
         result = subprocess.run(cmd, capture_output=True, text=True)
-        print("STDOUT:", result.stdout)
-        print("STDERR:", result.stderr)
+        self.assertEqual(result.returncode, 0, f"Bbox Pipeline script failed: {result.stderr}")
+        self.assertTrue(output_img.exists(), "Output map file was not generated for bbox")
+        self.assertGreater(output_img.stat().st_size, 0, "Output map file is empty for bbox")
+
+    def test_full_pipeline_countries(self):
+        script_path = Path(__file__).parent / "pipeline.py"
+        output_img = Path(self.work_dir) / "output_countries.img"
         
-        self.assertEqual(result.returncode, 0, "Pipeline script failed")
+        # We test providing countries. To avoid relying on live OSM API in tests (which could fail or be slow),
+        # we can test the --polygon parameter with a mock geojson generated locally.
+        mock_geojson = Path(self.work_dir) / "mock_countries.geojson"
+        mock_geojson.write_text("""
+        {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {"name": "MockCountry"},
+              "geometry": {
+                "type": "Polygon",
+                "coordinates": [ [ [5.9, 49.7], [6.1, 49.7], [6.1, 49.9], [5.9, 49.9], [5.9, 49.7] ] ]
+              }
+            }
+          ]
+        }
+        """)
+
+        cmd = [
+            "python3", str(script_path),
+            "--polygon", str(mock_geojson),
+            "--planet-file", str(self.test_pbf),
+            "--work-dir", os.path.join(self.work_dir, "work_countries"),
+            "--output", str(output_img),
+            "--skip-download"
+        ]
         
-        # Assert the final map image is generated and is not empty
-        self.assertTrue(output_img.exists(), "Output map file was not generated")
-        self.assertGreater(output_img.stat().st_size, 0, "Output map file is empty")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, f"Polygon Pipeline script failed: {result.stderr}")
+        self.assertTrue(output_img.exists(), "Output map file was not generated for polygon")
+        self.assertGreater(output_img.stat().st_size, 0, "Output map file is empty for polygon")
 
 if __name__ == "__main__":
     unittest.main()
