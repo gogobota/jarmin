@@ -10,7 +10,7 @@ We will write a bootstrap script (or a `Makefile`/`Dockerfile`) to automatically
 
 ## Phase 2: The Automation Pipeline
 We will build an automated pipeline with configurable parameters (e.g., Region="Germany" or "Europe"). The pipeline will run the following sequence:
-1.  **Fetch Data**: Automatically download the latest `.osm.pbf` from Geofabrik for the target region.
+1.  **Fetch Data**: Download official map data directly from OpenStreetMap infrastructure (e.g., `planet.openstreetmap.org`). To target specific regions, we will extract the area locally from the official planet file using bounding boxes and a tool like `osmium` or `osmconvert`, avoiding reliance on third-party extract providers like Geofabrik.
 2.  **Fetch Elevation**: Download matching SRTM (elevation) `.hgt` files and pre-processed contour data.
 3.  **Merge**: Use `osmconvert` to inject the contour data into the primary map data.
 4.  **Split**: Run `splitter` with parameters optimized for the Garmin Edge's memory limits.
