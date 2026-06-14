@@ -124,11 +124,18 @@ def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, 
     elif polygon:
         mask_file = Path(polygon)
 
-    if not skip_download:
+    local_planet = Path(planet_file)
+    if local_planet.exists():
+        print(f"Found local planet file at '{local_planet}', skipping download.")
+        input_for_extraction = local_planet
+    elif planet_path.exists():
+        print(f"Found local planet file at '{planet_path}', skipping download.")
+        input_for_extraction = planet_path
+    elif not skip_download:
         download_planet(planet_url, planet_path)
         input_for_extraction = planet_path
     else:
-        input_for_extraction = Path(planet_file)
+        input_for_extraction = local_planet
 
     print("1. Extracting region...")
     extract_region(input_for_extraction, region_path, bbox=bbox, polygon_file=mask_file)
