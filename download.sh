@@ -1,6 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
+if [[ ! -d .venv ]]; then
+    python3 -m venv .venv
+    pip install pyhgtmap
+fi
+
+exit 0
+
 DOWNLOADS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/downloads"
 mkdir -p "$DOWNLOADS_DIR"
 cd "$DOWNLOADS_DIR"
