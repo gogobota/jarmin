@@ -5,13 +5,13 @@ Based on research into the OpenStreetMap (OSM) to Garmin map creation process, h
 ## Required Software Dependencies
 To process the map generation pipeline locally, the following programs must be installed or available in the environment:
 
-*   **Java Runtime Environment (JRE/JDK)**: Required to run the Java-based `mkgmap` and `splitter` tools.
-*   **mkgmap**: Compiles the OSM data into the proprietary Garmin `.img` format and generates routing data.
-*   **splitter**: Breaks the massive OpenStreetMap files into smaller, Garmin-friendly tiles before compilation.
-*   **osmconvert**: A fast C-based command-line utility used for manipulating, merging (e.g., injecting contour lines), and filtering OSM data.
-*   **osmium-tool** (osmium): A highly efficient C++ tool ideal for extracting specific regional bounding boxes from the official full planet `.osm.pbf` file.
-*   **wget / curl**: Used in the automation scripts to download the planet file, elevation data, and tool binaries.
-*   **make**: Recommended for running the automation pipeline (`Makefile`).
+*   **[Java Runtime Environment (JRE/JDK)](https://adoptium.net/)**: Required to run the Java-based `mkgmap` and `splitter` tools.
+*   **[mkgmap](https://www.mkgmap.org.uk/download/mkgmap.html)**: Compiles the OSM data into the proprietary Garmin `.img` format and generates routing data.
+*   **[splitter](https://www.mkgmap.org.uk/download/splitter.html)**: Breaks the massive OpenStreetMap files into smaller, Garmin-friendly tiles before compilation.
+*   **[osmconvert](https://wiki.openstreetmap.org/wiki/Osmconvert#Download)**: A fast C-based command-line utility used for manipulating, merging (e.g., injecting contour lines), and filtering OSM data.
+*   **[osmium-tool](https://osmcode.org/osmium-tool/)** (osmium): A highly efficient C++ tool ideal for extracting specific regional bounding boxes from the official full planet `.osm.pbf` file.
+*   **[wget](https://www.gnu.org/software/wget/) / [curl](https://curl.se/)**: Used in the automation scripts to download the planet file, elevation data, and tool binaries.
+*   **[make](https://www.gnu.org/software/make/)**: Recommended for running the automation pipeline (`Makefile`).
 
 ## Phase 1: Toolchain & Environment Setup
 We will write a bootstrap script (or a `Makefile`/`Dockerfile`) to automatically fetch and configure the required binaries:
