@@ -3,7 +3,7 @@ set -euo pipefail
 
 if [[ ! -d .venv ]]; then
     python3 -m venv .venv
-    pip install pyhgtmap
+    ./.venv/bin/pip install pyhgtmap
 fi
 
 exit 0
