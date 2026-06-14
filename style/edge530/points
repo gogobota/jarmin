@@ -1,0 +1,9 @@
+# Aggressive decluttering: Only include cycling-relevant POIs
+
+amenity=drinking_water [0x5000 resolution 24]
+amenity=toilets [0x4f00 resolution 24]
+amenity=cafe [0x2a0a resolution 24]
+shop=bicycle [0x2f08 resolution 24]
+tourism=viewpoint [0x2c04 resolution 24]
+
+# Unmapped points are automatically dropped, keeping the map clean.

@@ -1,0 +1,6 @@
+# Keep essential natural features
+natural=water | water=lake | water=river [0x3c resolution 20]
+landuse=forest | natural=wood [0x50 resolution 20]
+leisure=park [0x17 resolution 22]
+
+# Unmapped polygons (like building=yes) are automatically dropped, keeping cities uncluttered.

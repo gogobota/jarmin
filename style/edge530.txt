@@ -1,0 +1,22 @@
+[_id]
+FID=1337
+ProductCode=1
+[end]
+
+[_line]
+Type=0x16
+UseOrientation=N
+LineWidth=3
+Xpm="0 0 1 0"
+"1 c #00FF00"
+String1=0x04,Cycleway
+[end]
+
+[_line]
+Type=0x0a
+UseOrientation=N
+LineWidth=2
+Xpm="0 0 1 0"
+"1 c #8B4513"
+String1=0x04,Track
+[end]

@@ -1,0 +1,23 @@
+# Avoid routing cyclists on major highways if possible
+highway=motorway {add bicycle=no}
+highway=trunk {add bicycle=no}
+
+# Cycle-friendly paths and lanes (0x16 = trail, 0x0a = unpaved track)
+highway=cycleway {set bicycle=yes; set access=yes} [0x16 road_class=0 road_speed=2 resolution 22]
+highway=path {set bicycle=yes; set access=yes} [0x16 road_class=0 road_speed=1 resolution 22]
+
+# Differentiate tracks by grade (quality)
+highway=track & tracktype=grade1 [0x0a road_class=0 road_speed=2 resolution 22]
+highway=track & tracktype=grade2 [0x0a road_class=0 road_speed=1 resolution 22]
+highway=track [0x0a road_class=0 road_speed=1 resolution 23]
+
+# Standard roads (kept for orientation but visually de-prioritized via TYP file)
+highway=primary [0x03 road_class=3 road_speed=4 resolution 19]
+highway=secondary [0x04 road_class=2 road_speed=3 resolution 20]
+highway=tertiary [0x05 road_class=1 road_speed=3 resolution 21]
+highway=unclassified [0x06 road_class=0 road_speed=2 resolution 22]
+highway=residential [0x06 road_class=0 road_speed=1 resolution 22]
+
+# Waterways for geographic context
+waterway=river [0x1f resolution 20]
+waterway=stream [0x18 resolution 22]

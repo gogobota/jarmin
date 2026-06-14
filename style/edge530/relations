@@ -1,0 +1,6 @@
+# Add cycle route networks to ways
+type=route & route=bicycle {
+    apply {
+        set cycle_network=yes;
+    }
+}

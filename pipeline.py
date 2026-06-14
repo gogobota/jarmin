@@ -85,12 +85,18 @@ def compile_map(split_dir, output_file):
     out_dir.mkdir(parents=True, exist_ok=True)
     template_args = split_dir / "template.args"
     
+    style_dir = BASE_DIR / "style" / "edge530"
+    typ_file = BASE_DIR / "style" / "edge530.txt"
+
     cmd = [
         "java", "-jar", str(MKGMAP_JAR),
         "--route",
         "--gmapsupp",
+        "--family-id=1337",
+        f"--style-file={style_dir}",
         f"--output-dir={out_dir}",
-        "-c", str(template_args)
+        "-c", str(template_args),
+        str(typ_file)
     ]
     run_cmd(cmd)
     
