@@ -8,3 +8,5 @@ unzip -f mkgmap-r4924.zip
 
 curl -O http://m.m.i24.cc/osmconvert.c
 gcc osmconvert.c -lz -O3 -o osmconvert
+
+brew install osmium-tool
