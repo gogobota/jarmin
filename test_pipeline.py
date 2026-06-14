@@ -110,5 +110,16 @@ class TestJarminPipeline(unittest.TestCase):
         self.assertTrue(output_img.exists(), "Output map file was not generated for contours test")
         self.assertGreater(output_img.stat().st_size, 0, "Output map file is empty for contours test")
 
+    def test_pipeline_generate_elevation_flag(self):
+        # We won't actually hit the network here to avoid flaky tests, 
+        # but we can verify the argument parser and function signature accepts it.
+        script_path = Path(__file__).parent / "pipeline.py"
+        cmd = [
+            "python3", str(script_path),
+            "--help"
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertIn("--generate-elevation", result.stdout)
+
 if __name__ == "__main__":
     unittest.main()
