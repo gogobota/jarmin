@@ -23,4 +23,4 @@ gcc osmconvert.c -lz -O3 -o osmconvert
 curl -O http://m.m.i24.cc/osmupdate.c
 gcc osmupdate.c -o osmupdate
 
-brew install osmium-tool
+brew install osmium-tool wget
