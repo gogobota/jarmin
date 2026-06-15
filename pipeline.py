@@ -7,6 +7,7 @@ import subprocess
 import argparse
 import urllib.request
 import urllib.parse
+from downloader import download_planet
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -22,12 +23,7 @@ def run_cmd(cmd):
     env["PATH"] = f"{DOWNLOADS_DIR.absolute()}:{env.get('PATH', '')}"
     subprocess.run(cmd, env=env, check=True)
 
-def download_planet(url, dest):
-    if dest.exists():
-        print(f"File {dest} already exists. Skipping download.")
-        return
-    print(f"Downloading {url} to {dest}...")
-    urllib.request.urlretrieve(url, dest)
+
 
 def fetch_country_geometry(country_name):
     url = f"https://nominatim.openstreetmap.org/search?country={urllib.parse.quote(country_name.strip())}&format=json&polygon_geojson=1"
@@ -250,7 +246,10 @@ def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, 
         print(f"Found local planet file at '{planet_path}', skipping download.")
         input_for_extraction = planet_path
     elif not skip_download:
-        download_planet(planet_url, planet_path)
+        success = download_planet(planet_url, planet_path)
+        if not success:
+            print("Error downloading or verifying planet file. Aborting.")
+            sys.exit(1)
         input_for_extraction = planet_path
     else:
         input_for_extraction = local_planet
