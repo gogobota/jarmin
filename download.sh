@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ ! -d .venv ]]; then
-    python3 -m venv .venv
+    /opt/homebrew/bin/python3 -m venv .venv
     source .venv/bin/activate
     ./.venv/bin/pip install pyhgtmap
 fi
