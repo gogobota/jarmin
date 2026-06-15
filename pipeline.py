@@ -18,7 +18,9 @@ OSMUPDATE_BIN = DOWNLOADS_DIR / "osmupdate"
 
 def run_cmd(cmd):
     print(f"--> {' '.join(str(c) for c in cmd)}")
-    subprocess.run(cmd, check=True)
+    env = os.environ.copy()
+    env["PATH"] = f"{DOWNLOADS_DIR.absolute()}:{env.get('PATH', '')}"
+    subprocess.run(cmd, env=env, check=True)
 
 def download_planet(url, dest):
     if dest.exists():
@@ -116,7 +118,7 @@ def generate_contours(work_dir, output_pbf, bbox=None, polygon_file=None):
         str(pyhgtmap_bin),
         "--sources=view3,view1",
         "--step=20",
-        "--major-step=100",
+        "--line-cat=100,50",
         "--pbf",
         f"--hgtdir={hgt_cache}",
         f"--output-prefix={out_prefix}"
