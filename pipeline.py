@@ -124,8 +124,28 @@ def generate_contours(work_dir, output_pbf, bbox=None, polygon_file=None):
         f"--output-prefix={out_prefix}"
     ]
 
-    if polygon_file:
+    if polygon_file and str(polygon_file).endswith('.poly'):
         cmd.append(f"--polygon={polygon_file}")
+    elif polygon_file and str(polygon_file).endswith('.geojson'):
+        # pyhgtmap doesn't support geojson, so we extract its bounding box
+        import json
+        with open(polygon_file, 'r') as f:
+            data = json.load(f)
+        min_lon, min_lat = 180, 90
+        max_lon, max_lat = -180, -90
+        def process_coords(coords):
+            nonlocal min_lon, min_lat, max_lon, max_lat
+            if type(coords[0]) in (float, int):
+                min_lon = min(min_lon, coords[0])
+                min_lat = min(min_lat, coords[1])
+                max_lon = max(max_lon, coords[0])
+                max_lat = max(max_lat, coords[1])
+            else:
+                for c in coords: process_coords(c)
+        for feature in data.get("features", []):
+            if "geometry" in feature and "coordinates" in feature["geometry"]:
+                process_coords(feature["geometry"]["coordinates"])
+        cmd.append(f"--area={min_lon}:{min_lat}:{max_lon}:{max_lat}")
     elif bbox:
         # pyhgtmap expects LEFT:BOTTOM:RIGHT:TOP
         # Our bbox is min_lon,min_lat,max_lon,max_lat
