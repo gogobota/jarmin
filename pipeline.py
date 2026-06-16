@@ -181,6 +181,7 @@ def split_data(input_pbf, output_dir):
     cmd = [
         "java", "-jar", str(SPLITTER_JAR),
         f"--output-dir={output_dir}",
+        "--max-nodes=800000",
         str(input_pbf)
     ]
     run_cmd(cmd)
