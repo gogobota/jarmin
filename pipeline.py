@@ -17,11 +17,11 @@ MKGMAP_JAR = DOWNLOADS_DIR / "mkgmap-r4924" / "mkgmap.jar"
 OSMCONVERT_BIN = DOWNLOADS_DIR / "osmconvert"
 OSMUPDATE_BIN = DOWNLOADS_DIR / "osmupdate"
 
-def run_cmd(cmd):
+def run_cmd(cmd, cwd=None):
     print(f"--> {' '.join(str(c) for c in cmd)}")
     env = os.environ.copy()
     env["PATH"] = f"{DOWNLOADS_DIR.absolute()}:{env.get('PATH', '')}"
-    subprocess.run(cmd, env=env, check=True)
+    subprocess.run(cmd, env=env, check=True, cwd=cwd)
 
 
 
@@ -61,40 +61,40 @@ def build_countries_geojson(countries, output_path):
     with open(output_path, 'w') as f:
         json.dump(geojson, f)
 
-def extract_region(input_pbf, output_pbf, bbox=None, polygon_file=None):
+def extract_region(input_pbf, output_pbf, work_dir, bbox=None, polygon_file=None):
     if polygon_file:
-        cmd = ["osmium", "extract", "-p", str(polygon_file), str(input_pbf), "-o", str(output_pbf), "--overwrite"]
+        cmd = ["osmium", "extract", "-p", str(Path(polygon_file).absolute()), str(Path(input_pbf).absolute()), "-o", str(Path(output_pbf).absolute()), "--overwrite"]
     elif bbox:
-        cmd = ["osmium", "extract", "-b", bbox, str(input_pbf), "-o", str(output_pbf), "--overwrite"]
+        cmd = ["osmium", "extract", "-b", bbox, str(Path(input_pbf).absolute()), "-o", str(Path(output_pbf).absolute()), "--overwrite"]
     else:
         raise ValueError("Either bbox or polygon_file must be provided for extraction.")
-    run_cmd(cmd)
+    run_cmd(cmd, cwd=work_dir)
 
 def update_region(input_pbf, output_pbf, work_dir):
     print(f"Updating {input_pbf} with osmupdate...")
     # osmupdate might need a temp directory for downloaded diffs
     temp_dir = work_dir / "osmupdate_temp"
     temp_dir.mkdir(parents=True, exist_ok=True)
-    cmd = [str(OSMUPDATE_BIN), str(input_pbf), str(output_pbf), f"-t={temp_dir}/"]
-    run_cmd(cmd)
+    cmd = [str(OSMUPDATE_BIN.absolute()), str(Path(input_pbf).absolute()), str(Path(output_pbf).absolute()), f"-t={temp_dir.absolute()}/"]
+    run_cmd(cmd, cwd=work_dir)
 
-def merge_contours(map_pbf, contours_pbf, output_pbf):
+def merge_contours(map_pbf, contours_pbf, output_pbf, work_dir):
     print(f"Merging contours from {contours_pbf} into map...")
     # osmconvert can only convert one PBF to o5m at a time during merge, or requires converting to o5m first.
     # The safest one-liner for osmconvert merging is to use o5m conversion in memory, but dropping version info.
     # Wait, the correct osmconvert syntax for merging two PBFs is usually converting them to o5m first.
     # However, if we drop version we can append them. Let's convert to o5m first.
-    map_o5m = str(map_pbf).replace(".pbf", ".o5m")
-    contours_o5m = str(contours_pbf).replace(".pbf", ".o5m")
+    map_o5m = str(Path(map_pbf).absolute()).replace(".pbf", ".o5m")
+    contours_o5m = str(Path(contours_pbf).absolute()).replace(".pbf", ".o5m")
     
     print("  Converting map to o5m...")
-    run_cmd([str(OSMCONVERT_BIN), str(map_pbf), f"-o={map_o5m}"])
+    run_cmd([str(OSMCONVERT_BIN.absolute()), str(Path(map_pbf).absolute()), f"-o={map_o5m}"], cwd=work_dir)
     
     print("  Converting contours to o5m...")
-    run_cmd([str(OSMCONVERT_BIN), str(contours_pbf), f"-o={contours_o5m}"])
+    run_cmd([str(OSMCONVERT_BIN.absolute()), str(Path(contours_pbf).absolute()), f"-o={contours_o5m}"], cwd=work_dir)
     
     print("  Merging o5m files...")
-    run_cmd([str(OSMCONVERT_BIN), map_o5m, contours_o5m, f"-o={output_pbf}"])
+    run_cmd([str(OSMCONVERT_BIN.absolute()), map_o5m, contours_o5m, f"-o={Path(output_pbf).absolute()}"], cwd=work_dir)
     
     Path(map_o5m).unlink(missing_ok=True)
     Path(contours_o5m).unlink(missing_ok=True)
@@ -111,13 +111,13 @@ def generate_contours(work_dir, output_pbf, bbox=None, polygon_file=None):
     out_prefix = work_dir / "generated_contours"
     
     cmd = [
-        str(pyhgtmap_bin),
+        str(pyhgtmap_bin.absolute()),
         "--sources=view3,view1",
         "--step=20",
         "--line-cat=100,50",
         "--pbf",
-        f"--hgtdir={hgt_cache}",
-        f"--output-prefix={out_prefix}"
+        f"--hgtdir={hgt_cache.absolute()}",
+        f"--output-prefix={out_prefix.absolute()}"
     ]
 
     if polygon_file and str(polygon_file).endswith('.poly'):
@@ -149,7 +149,7 @@ def generate_contours(work_dir, output_pbf, bbox=None, polygon_file=None):
         cmd.append(f"--area={lon_min}:{lat_min}:{lon_max}:{lat_max}")
 
     print("  Generating contours with pyhgtmap...")
-    run_cmd(cmd)
+    run_cmd(cmd, cwd=work_dir)
     
     # pyhgtmap adds _<something>.osm.pbf to the prefix depending on the area.
     # We find the generated file and move it to the requested output_pbf.
@@ -163,60 +163,61 @@ def generate_contours(work_dir, output_pbf, bbox=None, polygon_file=None):
         # osmconvert requires appending files one by one, or using o5m format.
         # But we can append multiple files if they have identical schemas or use --merge-versions.
         # The easiest approach for concatenating PBFs is actually passing them sequentially.
-        cmd_merge = [str(OSMCONVERT_BIN)] + [str(f) for f in generated_files] + ["--merge-versions", f"-o={output_pbf}"]
+        cmd_merge = [str(OSMCONVERT_BIN.absolute())] + [str(f.absolute()) for f in generated_files] + ["--merge-versions", f"-o={Path(output_pbf).absolute()}"]
         try:
-            run_cmd(cmd_merge)
+            run_cmd(cmd_merge, cwd=work_dir)
         except subprocess.CalledProcessError:
             # If that fails due to osmconvert limitations with PBF merging, fallback to single OSMIUM merge
-            cmd_osmium = ["osmium", "merge"] + [str(f) for f in generated_files] + ["-o", str(output_pbf), "--overwrite"]
-            run_cmd(cmd_osmium)
+            cmd_osmium = ["osmium", "merge"] + [str(f.absolute()) for f in generated_files] + ["-o", str(Path(output_pbf).absolute()), "--overwrite"]
+            run_cmd(cmd_osmium, cwd=work_dir)
             
         for f in generated_files:
             f.unlink(missing_ok=True)
     else:
         generated_files[0].rename(output_pbf)
 
-def split_data(input_pbf, output_dir):
+def split_data(input_pbf, output_dir, work_dir):
     output_dir.mkdir(parents=True, exist_ok=True)
     cmd = [
-        "java", "-jar", str(SPLITTER_JAR),
-        f"--output-dir={output_dir}",
-        "--max-nodes=800000",
-        str(input_pbf)
+        "java", "-jar", str(SPLITTER_JAR.absolute()),
+        f"--output-dir={output_dir.absolute()}",
+        "--max-nodes=400000",
+        str(Path(input_pbf).absolute())
     ]
-    run_cmd(cmd)
+    run_cmd(cmd, cwd=work_dir)
 
-def compile_map(split_dir, output_file, dem_dir=None):
-    out_dir = output_file.parent
-    out_dir.mkdir(parents=True, exist_ok=True)
+def compile_map(split_dir, output_file, work_dir, dem_dir=None):
+    compiled_dir = work_dir / "compiled"
+    compiled_dir.mkdir(parents=True, exist_ok=True)
     template_args = split_dir / "template.args"
     
     style_dir = BASE_DIR / "style" / "edge530"
     typ_file = BASE_DIR / "style" / "edge530.txt"
 
     cmd = [
-        "java", "-jar", str(MKGMAP_JAR),
+        "java", "-jar", str(MKGMAP_JAR.absolute()),
         "--route",
         "--gmapsupp",
         "--family-id=1337",
-        f"--style-file={style_dir}",
-        f"--output-dir={out_dir}",
-        "-c", str(template_args),
-        str(typ_file)
+        f"--style-file={style_dir.absolute()}",
+        f"--output-dir={compiled_dir.absolute()}",
+        "-c", str(template_args.absolute()),
+        str(typ_file.absolute())
     ]
     
     if dem_dir:
         cmd.extend([
-            f"--dem={dem_dir}",
+            f"--dem={Path(dem_dir).absolute()}",
             "--dem-dists=3314,13248,44176",
             "--overview-dem-dist=88368"
         ])
 
-    run_cmd(cmd)
+    run_cmd(cmd, cwd=work_dir)
     
-    # mkgmap usually outputs gmapsupp.img inside the out_dir.
-    produced_img = out_dir / "gmapsupp.img"
-    if produced_img.resolve() != output_file.resolve() and produced_img.exists():
+    # mkgmap usually outputs gmapsupp.img inside the compiled_dir.
+    produced_img = compiled_dir / "gmapsupp.img"
+    if produced_img.exists():
+        output_file.parent.mkdir(parents=True, exist_ok=True)
         produced_img.rename(output_file)
 
 def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, update=False, bbox=None, countries=None, polygon=None, contours=None, generate_elevation=False, dem_dir=None):
@@ -256,7 +257,7 @@ def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, 
         input_for_extraction = local_planet
 
     print("1. Extracting region...")
-    extract_region(input_for_extraction, region_path, bbox=bbox, polygon_file=mask_file)
+    extract_region(input_for_extraction, region_path, work_dir, bbox=bbox, polygon_file=mask_file)
 
     if update:
         print("1a. Updating extracted region via osmupdate...")
@@ -276,14 +277,14 @@ def run_pipeline(planet_url, planet_file, work_dir, output_file, skip_download, 
     if active_contours:
         print("1c. Merging contour lines...")
         region_with_contours_path = work_dir / "region_with_contours.osm.pbf"
-        merge_contours(region_path, active_contours, region_with_contours_path)
+        merge_contours(region_path, active_contours, region_with_contours_path, work_dir)
         region_path = region_with_contours_path
 
     print("2. Splitting data...")
-    split_data(region_path, split_dir)
+    split_data(region_path, split_dir, work_dir)
 
     print("3. Compiling Garmin map...")
-    compile_map(split_dir, output_file, dem_dir=dem_dir)
+    compile_map(split_dir, output_file, work_dir, dem_dir=dem_dir)
 
     print(f"Pipeline finished! Map is available at: {output_file}")
 

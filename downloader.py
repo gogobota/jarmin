@@ -21,11 +21,12 @@ def get_remote_md5(url):
 def verify_md5(filepath, expected_md5):
     """Verify the MD5 hash of the local file."""
     print(f"Verifying MD5 hash of {filepath}...")
+    filepath_abs = Path(filepath).absolute()
     # Using the system's md5/md5sum command is much faster for a 90GB file than doing it in pure Python
     if sys.platform == "darwin":
-        cmd = ["md5", "-q", str(filepath)]
+        cmd = ["md5", "-q", str(filepath_abs)]
     else:
-        cmd = ["md5sum", str(filepath)]
+        cmd = ["md5sum", str(filepath_abs)]
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -62,12 +63,13 @@ def download_planet(url, dest_path):
             print("Could not fetch remote MD5 to verify existing file. Proceeding with curl resume to check completion...")
 
     print(f"Downloading (or resuming) {url} to {dest_path} using curl...")
+    dest_path_abs = Path(dest_path).absolute()
     cmd = [
         "curl",
         "--fail",
         "--location",
         "--continue-at", "-", # Resume if file exists
-        "--output", str(dest_path),
+        "--output", str(dest_path_abs),
         url
     ]
     
