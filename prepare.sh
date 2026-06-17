@@ -7,7 +7,7 @@ if [[ ! -d .venv ]]; then
     ./.venv/bin/pip install pyhgtmap
 fi
 
-DOWNLOADS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/downloads"
+DOWNLOADS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/bin"
 mkdir -p "$DOWNLOADS_DIR"
 cd "$DOWNLOADS_DIR"
 
