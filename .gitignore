@@ -1,10 +1,6 @@
-# bin
-bin/
-mkgmap-r4924.zip
-mkgmap-r4924
-osmconvert
-osmconvert.c
-splitter-r654.zip
-splitter-r654
+__pycache__/
+*.py[codz]
+*$py.class
 .venv
-work
+bin/
+work/
