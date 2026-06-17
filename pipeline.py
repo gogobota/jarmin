@@ -11,7 +11,7 @@ from downloader import download_planet
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
-DOWNLOADS_DIR = BASE_DIR / "downloads"
+DOWNLOADS_DIR = BASE_DIR / "bin"
 SPLITTER_JAR = DOWNLOADS_DIR / "splitter-r654" / "splitter.jar"
 MKGMAP_JAR = DOWNLOADS_DIR / "mkgmap-r4924" / "mkgmap.jar"
 OSMCONVERT_BIN = DOWNLOADS_DIR / "osmconvert"
