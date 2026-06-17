@@ -312,7 +312,7 @@ def main():
     # Verify dependencies are in place
     for tool in [SPLITTER_JAR, MKGMAP_JAR, OSMCONVERT_BIN, OSMUPDATE_BIN]:
         if not tool.exists():
-            print(f"Error: Missing tool {tool}. Did you run downloads/download.sh?")
+            print(f"Error: Missing tool {tool}. Did you run prepare.sh?")
             sys.exit(1)
 
     run_pipeline(
